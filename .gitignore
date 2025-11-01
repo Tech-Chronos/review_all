@@ -1,0 +1,92 @@
+# =============================
+# C / C++ Project Ignore File
+# =============================
+
+# --- Build artifacts ---
+*.o
+*.obj
+*.lo
+*.la
+*.al
+*.out
+*.a
+*.so
+*.so.*
+*.dll
+*.dylib
+*.lib
+*.exe
+*.app
+*.elf
+
+# --- Precompiled Headers ---
+*.gch
+*.pch
+
+# --- Compiled Static/Dynamic Libraries ---
+*.lai
+*.slo
+*.mod
+*.cmake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+build/
+Build/
+build*/
+out/
+bin/
+lib/
+debug/
+release/
+Release/
+Debug/
+
+# --- Test / Temp files ---
+*.log
+*.tmp
+*.swp
+*.swo
+*.DS_Store
+*.dSYM/
+*.stackdump
+*.bak
+*.old
+*.orig
+*.rej
+core
+vgcore.*
+
+# --- IDE / Editor settings ---
+# VSCode
+.vscode/
+*.code-workspace
+
+# CLion / JetBrains
+.idea/
+cmake-build-*/
+
+# Xcode
+*.xcworkspace/
+*.xcuserdata/
+DerivedData/
+
+# --- OS-specific ---
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.nfs*
+
+# --- Other ---
+*.zip
+*.tar
+*.gz
+*.7z
+*.bak
+*.backup
+
