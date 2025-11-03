@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdio>
+
 using namespace std;
 
 void test1()
@@ -33,29 +34,20 @@ void swap(int* left, int* right)
 
 void bubble_sort(int* arr, int sz)
 {
-    int* slow = arr;
-    int* fast = arr + 1;
+    bool flag = true;
     for (int i = 0; i < sz - 1; ++i)
     {
-        int flag = 1;
-        while (fast < arr + sz - i - 1)
+        for (int j = 0; j < sz - i - 1; ++j)
         {
-            if (*slow > *fast)
+            if (arr[j] > arr[j + 1])
             {
-                flag = 0;
-                swap(fast, slow);
+                flag = false;
+                swap(&arr[j], &arr[j + 1]);
             }
-            ++fast;
-            ++slow;
         }
-        if (flag == 1)
-        {
+        if (flag)
             break;
-        }
-        slow = arr;
-        fast = arr + 1;
     }
-
 }
 
 
@@ -80,9 +72,36 @@ void test3()
     }
 }
 
+void test4()
+{
+    char str1[] = "hello bit.";
+    char str2[] = "hello bit.";
+    const char *str3 = "hello bit.";
+    const char *str4 = "hello bit.";
+    if(str1 == str2)
+        printf("str1 and str2 are same\n");
+    else
+        printf("str1 and str2 are not same\n");
+    if(str3 ==str4)
+        printf("str3 and str4 are same\n");
+    else
+        printf("str3 and str4 are not same\n");
+//    cout << "str1[0] " << &str1[0] << endl;
+//    cout << "str2[0] " << &str2[0] << endl;
+//    cout << "str3[0] " << &str3[0] << endl;
+//    cout << "str4[0] " << &str4[0] << endl;
+    printf("str1[0]: %p\n", &str1[0]);
+    printf("str2[0]: %p\n", &str2[0]);
+    printf("str3[0]: %p\n", &str3[0]);
+    printf("str4[0]: %p\n", &str4[0]);
+
+    int a = 0;
+    cout << "&a: " << &a <<endl;
+}
+
 int main()
 {
-    test3();
+    test4();
     return 0;
 }
 //int main()
