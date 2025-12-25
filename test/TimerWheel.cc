@@ -15,7 +15,7 @@ class TimerTask
 {
 public:
     TimerTask(uint64_t id, uint32_t timeout, task_t task)
-        : _id(id), _timeout(timeout), _task_cb(task)
+        : _id(id), _timeout(timeout), _task_cb(task), _cancel(false)
     {
     }
 
@@ -29,10 +29,16 @@ public:
         return _timeout;
     }
 
+    void Cancel()
+    {
+        _cancel = false;
+    }
+
     ~TimerTask()
     {
         std::cout << "Timer task delete" << std::endl;
-        _task_cb();
+        if (_cancel)
+            _task_cb();
         _release();
     }
 
@@ -41,6 +47,7 @@ private:
     uint32_t _timeout;
     task_t _task_cb;
     release_t _release;
+    bool _cancel;
 };
 
 class TimerWheel
@@ -81,15 +88,22 @@ public:
         if (it != _timers.end())
         {
             std::shared_ptr<TimerTask> tsp(_timers[id].lock());
-            // for (auto& slot : _wheel)
-            // {
-            //     slot.erase(std::remove(slot.begin(), slot.end(), tsp), slot.end());
-            // }
-
+            if (!tsp) return;
             size_t pos = (_tick + it->second.lock()->GetTimeOut()) % _capacity;
             _wheel[pos].push_back(tsp);
         }
         return;
+    }
+
+    void SetTimerCancel(uint64_t id)
+    {
+        std::unordered_map<uint64_t, std::weak_ptr<TimerTask>>::iterator it = _timers.find(id);
+        if (it == _timers.end()) return;
+        
+        std::shared_ptr<TimerTask> tsp(_timers[id].lock());
+        if (!tsp) return;
+        tsp->Cancel();
+        std::cout << "id :" << id << " 被取消执行了！" << std::endl;
     }
 
     void RunTimer()
@@ -146,6 +160,8 @@ int main()
         std::cout << "时间轮更新，5s钟后执行！" << std::endl;
         tw.RunTimer();
     }
+
+    tw.SetTimerCancel(888);
 
     while (true)
     {
