@@ -1,6 +1,7 @@
 #include "Common.hpp"
 
 #include <iostream>
+#include <cerrno>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
@@ -87,9 +88,15 @@ public:
         int con_fd = accept(_sockfd, nullptr, nullptr);
         if (con_fd < 0)
         {
+            if (errno == EWOULDBLOCK || errno == EAGAIN || errno == EINTR)
+            {
+                INF_LOG("no accept!");
+                return -2;
+            }
             ERR_LOG("Accept Error!");
             return -1;
         }
+        INF_LOG("Client Connect!");
         SetNonBlock(con_fd);
         return con_fd;
     }
@@ -99,7 +106,10 @@ public:
     {
         int ret = fcntl(sockfd, F_GETFL);
         if (ret < 0)
+        {
             ERR_LOG("SetNonBlock Error!");
+            return;
+        }
         fcntl(sockfd, F_SETFL, ret | O_NONBLOCK);
     }
 
@@ -135,13 +145,18 @@ public:
     int Recv(char* buffer, size_t size)
     {
         int ret = recv(_sockfd, buffer, size - 1, 0);
-        if (ret <= 0)
+        if (ret < 0)
         {
             if (errno == EWOULDBLOCK || errno == EINTR)
             {
                 return 0;
             }
             return -1;
+        }
+        else if (ret == 0)
+        {
+            INF_LOG("client quit!");
+            return ret;
         }
         else 
         {
