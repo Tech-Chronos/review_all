@@ -1,10 +1,12 @@
 #include "Common.hpp"
 #include "Buffer.hpp"
 #include "Socket.hpp"
+#include "Channel.h"
+#include "Poller.h"
 
 int main()
 {
-    Socket sock;
+    Poller poll;
     
     return 0;
 }

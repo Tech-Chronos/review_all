@@ -1,3 +1,4 @@
+#pragma once
 #include "Common.hpp"
 
 #include <iostream>
@@ -51,7 +52,7 @@ public:
     }
 
     // 3. 服务器监听套接字
-    bool Listen(int backlog = 8)
+    bool Listen(int backlog = 3)
     {
         int ret = listen(_sockfd, backlog);
         if (ret < 0)
