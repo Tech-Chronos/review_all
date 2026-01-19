@@ -1,12 +1,13 @@
 #include "Channel.h"
 #include "Poller.h"
 #include "EventLoop.h"
+#include "TimerWheel.h"
 
 void EventLoop::RunAllTask()
 {
     std::vector<Functor> tasks;
     {
-        std::unique_lock<std::mutex>(_mtx);
+        std::unique_lock<std::mutex> _lock(_mtx);
         _tasks.swap(tasks);
     }
     for (auto &t : tasks)
@@ -20,6 +21,7 @@ EventLoop::EventLoop()
     , _eventfd(CreateEventfd())
     , _event_channel(std::make_unique<Channel>(_eventfd, this))
     , _isrunning(false)
+    , _wheel(this)
 {
     _event_channel->SetReadCb(std::bind(&EventLoop::SetEventCb, this));
     _event_channel->EnableRead();
@@ -34,7 +36,7 @@ void EventLoop::QueueInLoop(const Functor &cb)
 {
     // 保证最小粒度的加锁
     {
-        std::unique_lock<std::mutex>(_mtx);
+        std::unique_lock<std::mutex> _lock(_mtx);
         _tasks.push_back(cb);
     }
     // 唤醒可能因为没有事件就绪导致的epoll阻塞，就是在eventfd中写入数据，唤醒epoll
@@ -119,5 +121,20 @@ void EventLoop::WakeUpEventFd()
         ERR_LOG("write error!");
         exit(-1);
     }
+}
+
+void EventLoop::AddTimer(uint64_t id, uint32_t timeout, task_t task)
+{
+    _wheel.AddTimerInLoop(id, timeout, task);
+}
+
+void EventLoop::RefreshTimer(uint64_t id)
+{
+    _wheel.RefreshTimerInLoop(id);
+}
+
+void EventLoop::CancelTimer(uint64_t id)
+{
+    _wheel.SetTimerCancelInLoop(id);
 }
 

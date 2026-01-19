@@ -1,4 +1,6 @@
 #pragma once
+#include "TimerWheel.h"
+#include "Poller.h"
 #include <iostream>
 #include <vector>
 #include <memory>
@@ -11,6 +13,7 @@
 
 class Channel;
 class Poller;
+class TimerWheel;
 using Functor = std::function<void()>;
 
 class EventLoop
@@ -27,6 +30,10 @@ public:
     void RemoveEvent(Channel* channel);
     void Start();
 
+    void AddTimer(uint64_t id, uint32_t timeout, task_t task);
+    void RefreshTimer(uint64_t id);
+    void CancelTimer(uint64_t id);
+
 private:
     int CreateEventfd();
     void SetEventCb();
@@ -40,4 +47,5 @@ private:
     std::vector<Functor> _tasks; // 任务队列
     std::mutex _mtx;
     bool _isrunning;
+    TimerWheel _wheel;
 };

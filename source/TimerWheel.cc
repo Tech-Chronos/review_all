@@ -33,7 +33,6 @@ TimerTask::~TimerTask()
 }
 
 // TimerWheel
-
 // private
 void TimerWheel::RemoveTimer(uint64_t id)
 {
@@ -126,7 +125,7 @@ void TimerWheel::TimerCb()
     RunTimer();
 }
 
-TimerWheel::TimerWheel(int capacity, EventLoop* loop)
+TimerWheel::TimerWheel(EventLoop* loop, int capacity)
     : _capacity(capacity)
     , _tick(0)
     , _loop(loop)

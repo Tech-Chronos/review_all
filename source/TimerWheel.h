@@ -44,8 +44,8 @@ private:
     void RunTimer();
 
 public:
-    TimerWheel(int capacity, EventLoop* loop);
-    void TimerWheel::TimerCb();
+    TimerWheel(EventLoop* loop, int capacity = 512);
+    void TimerCb();
     void AddTimerInLoop(uint64_t id, uint32_t timeout, task_t task);
     void RefreshTimerInLoop(uint64_t id);
     void SetTimerCancelInLoop(uint64_t id);
