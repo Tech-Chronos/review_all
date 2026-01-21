@@ -143,12 +143,12 @@ public:
     }
 
     // 读取
-    int Recv(char* buffer, size_t size)
+    ssize_t Recv(char* buffer, size_t size, int flag)
     {
-        int ret = recv(_sockfd, buffer, size - 1, 0);
+        ssize_t ret = recv(_sockfd, buffer, size - 1, flag);
         if (ret < 0)
         {
-            if (errno == EWOULDBLOCK || errno == EINTR)
+            if (errno == EWOULDBLOCK || errno == EINTR || errno == EAGAIN)
             {
                 return 0;
             }
@@ -166,10 +166,15 @@ public:
         return ret;
     }
 
-    // 发送
-    int Send(const char* data, size_t size)
+    ssize_t RecvNonBlock(char* buffer, size_t size)
     {
-        int ret = send(_sockfd, data, size, 0);
+        ssize_t ret = Recv(buffer, size, MSG_DONTWAIT);
+    }
+
+    // 发送
+    ssize_t Send(const char* data, size_t size, int flag)
+    {
+        ssize_t ret = send(_sockfd, data, size, 0);
         if (ret < 0)
         {
             if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
@@ -181,6 +186,12 @@ public:
         {
             return ret;
         }
+    }
+
+    ssize_t SendNonBlock(const char* data, size_t size)
+    {
+        ssize_t ret = Send(data, size, MSG_DONTWAIT);
+        return ret;
     }
 
     // 10. 关闭文件描述符

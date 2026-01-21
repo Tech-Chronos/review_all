@@ -49,14 +49,15 @@ public:
     void AddTimerInLoop(uint64_t id, uint32_t timeout, task_t task);
     void RefreshTimerInLoop(uint64_t id);
     void SetTimerCancelInLoop(uint64_t id);
+    bool HasTimerId(uint64_t id);
     ~TimerWheel();
 
 private:
     int _capacity;
     int _tick;
-    std::vector<std::vector<std::shared_ptr<TimerTask>>> _wheel;
+    std::vector<std::vector<std::shared_ptr<TimerTask>>> _wheel; // 定时任务队列
     std::shared_ptr<TimerTask> _tsp;
-    std::unordered_map<uint64_t, std::weak_ptr<TimerTask>> _timers;
+    std::unordered_map<uint64_t, std::weak_ptr<TimerTask>> _timers; // 自己保存的一份
 
     EventLoop* _loop;  // 属于哪个loop
     int _timerfd;      // 定时器文件描述符

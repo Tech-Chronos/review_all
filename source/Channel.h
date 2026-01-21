@@ -21,7 +21,7 @@ public:
     void DisableWrite();
     void DisableAll();
     void Remove();
-
+    
     void SetWriteCb(const EventCallback& cb);
     void SetReadCb (const EventCallback& cb);
     void SetErrorCb(const EventCallback& cb);

@@ -33,6 +33,7 @@ public:
     void AddTimer(uint64_t id, uint32_t timeout, task_t task);
     void RefreshTimer(uint64_t id);
     void CancelTimer(uint64_t id);
+    bool HasTimer(uint64_t id);
 
 private:
     int CreateEventfd();

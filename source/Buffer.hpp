@@ -51,8 +51,9 @@ public:
     // 6. 将读偏移向后移动
     void MoveReadOffset(size_t len)
     {
+        if (len == 0) return;
         // 必须保证可读区域要大于len
-        assert(len <= GetReadableDataNum());
+        assert(len <= GetReadableDataNum() && len > 0);
         _reader_idx += len;
     }
 
@@ -87,8 +88,9 @@ public:
     // 8. 将写偏移向后移动
     void MoveWriteOffset(size_t len)
     {
+        if (len == 0) return;
         // 只要保证前沿的空间够，就可以向后移动了，这里肯定可以保证，因为已经ensure了
-        assert(len <= GetFrontSpaceNum());
+        assert(len <= GetFrontSpaceNum() && len > 0);
         _writer_idx += len;
     }
 

@@ -158,6 +158,13 @@ void TimerWheel::SetTimerCancelInLoop(uint64_t id)
    _loop->RunInLoop(std::bind(&TimerWheel::SetTimerCancel, this, id));
 }
 
+bool TimerWheel::HasTimerId(uint64_t id)
+{
+    auto pos = _timers.find(id);
+    return (pos != _timers.end());
+}
+
+
 TimerWheel::~TimerWheel()
 {
 }

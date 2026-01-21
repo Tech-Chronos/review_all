@@ -91,7 +91,7 @@ void Channel::SetAnyCb(const EventCallback &cb)
     _any_cb = cb;
 }
 
-// 用“错误/关闭优先 + any 只一次”
+// “错误/关闭优先  any 只一次”
 void Channel::HandleEvents()
 {
     if (_any_cb)

@@ -123,6 +123,7 @@ void EventLoop::WakeUpEventFd()
     }
 }
 
+// 在时间轮中对任务操作
 void EventLoop::AddTimer(uint64_t id, uint32_t timeout, task_t task)
 {
     _wheel.AddTimerInLoop(id, timeout, task);
@@ -137,4 +138,10 @@ void EventLoop::CancelTimer(uint64_t id)
 {
     _wheel.SetTimerCancelInLoop(id);
 }
+
+bool EventLoop::HasTimer(uint64_t id)
+{
+    _wheel.HasTimerId(id);
+}
+
 
