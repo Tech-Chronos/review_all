@@ -10,6 +10,9 @@
 #include <unordered_map>
 
 std::unordered_map<uint64_t, std::shared_ptr<Connection>> conns;
+std::vector<ThreadLoop> threads(2);
+EventLoop base_thread;
+int next_loop = 1;
 
 void ConnCb(std::shared_ptr<Connection> conn)
 {
@@ -30,7 +33,8 @@ void MessageDealCb(std::shared_ptr<Connection> conn, Buffer* buf)
 void AcceptHelper(EventLoop* loop, int io_fd)
 {
     static int con_id = 1;
-    std::shared_ptr<Connection> new_con = std::make_shared<Connection>(con_id, io_fd, loop);
+    EventLoop* next = threads[next_loop].GetEventLoopPtr();
+    std::shared_ptr<Connection> new_con = std::make_shared<Connection>(con_id, io_fd, next);
     new_con->SetConnectedCallback(std::bind(ConnCb, std::placeholders::_1));
     new_con->SetServerCloseCallback(std::bind(ServerCloseCb, std::placeholders::_1));
     new_con->SetMessageDealCallback(std::bind(MessageDealCb, std::placeholders::_1, std::placeholders::_2));
@@ -38,15 +42,16 @@ void AcceptHelper(EventLoop* loop, int io_fd)
 
     new_con->AddInactiveEventRelease(5);
     ++con_id;
+    next_loop = (next_loop + 1 ) % 2;
 }
 
 int main()
 {
-    EventLoop loop;
-    Acceptor acc(8888, &loop);
-    acc.SetAcceptCallback(std::bind(AcceptHelper, &loop, std::placeholders::_1));
+    //EventLoop loop;
+    Acceptor acc(8888, &base_thread);
+    acc.SetAcceptCallback(std::bind(AcceptHelper, &base_thread, std::placeholders::_1));
     acc.Listen();
 
     while (true)
-        loop.Start();
+        base_thread.Start();
 }

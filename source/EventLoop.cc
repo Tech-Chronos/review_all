@@ -150,4 +150,32 @@ bool EventLoop::HasTimer(uint64_t id)
     return _wheel.HasTimerId(id);
 }
 
+////////////////////////////////ThreadLoop模块//////////////////////////////////////
+/// 当线程来的时候，要创建Eventloop，_loop是临界资源，最好不要在锁外访问，否则会有竞态条件
+void ThreadLoop::ThreadEntry()
+{
+    EventLoop loop;
+    {
+        std::unique_lock<std::mutex> _lock(_mutex);
+        _loop = &loop;
+    }
+    _cond.notify_all();
+    loop.Start();
+}
+
+ThreadLoop::ThreadLoop()
+        : _loop(nullptr)
+        , _thread(&ThreadLoop::ThreadEntry, this)
+    {}
+
+EventLoop* ThreadLoop::GetEventLoopPtr()
+{
+    EventLoop* loop = nullptr;
+    {
+        std::unique_lock<std::mutex> _lock(_mutex);
+        _cond.wait(_lock, [&]()mutable { return _loop != nullptr; });
+        loop = _loop;
+    }
+    return loop;
+}
 
