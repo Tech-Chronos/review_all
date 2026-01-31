@@ -28,7 +28,7 @@ int Connection::GetConnId()
 }
 
 /// @brief 设置协议类型
-void Connection::SetContext(const Any &context)
+void Connection::SetContext(Any context)
 {
     _context = context;
 }

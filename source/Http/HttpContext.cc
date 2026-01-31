@@ -5,13 +5,14 @@ HttpContext::HttpContext()
 {
 }
 
-// 拿到请求行
+// 拿到请求行（首行）
 bool HttpContext::RecvReqLine(Buffer *buf)
 {
     if (_status != RECV_REQ_LINE)
         return false;
     // 没有找到 \r\n 一整行数据
     std::string req_line = buf->GetLineAndPop();
+    //DBG_LOG("req_line=[%s]", req_line.c_str());
     if (req_line.empty())
     {
         if (buf->GetReadableDataNum() > MaxLine)
@@ -41,8 +42,9 @@ bool HttpContext::ParseReqLine(const std::string& req_line)
 {
     // 用正则表达式分割请求行：请求方法、请求资源、查询字符串、http版本
     std::smatch matches;
-    std::regex pattern("(GET|PUT|POST|OPTIONS|DELETE|PATCH|HEAD) ([^\\?]+)(?:[\\?])?([^\\s]+) (HTTP/1\\.[01])(?:\n|\r\n))", std::regex::icase);
-
+    std::regex pattern("(GET|PUT|POST|OPTIONS|DELETE|PATCH|HEAD)\\s+([^\\s\\?]+)(?:\\?([^\\s]*))?\\s+(HTTP/1\\.[01])\\r?\\n", std::regex::icase);
+    //std::regex pattern("(GET|PUT|POST|OPTIONS|DELETE|PATCH|HEAD) ([^\\s\\?]+)(?:\\?([^\\s]*)? (HTTP/1\\.[01])(?:\n|\r\n)", std::regex::icase);
+    //(GET|PUT|POST|OPTIONS|DELETE|PATCH|HEAD)\s+([^\s\?]+)(?:\?([^\s]*))?\s+(HTTP/1\.[01])\r?\n
     bool ret = std::regex_match(req_line, matches, pattern);
     if (ret == false)
     {
@@ -53,7 +55,7 @@ bool HttpContext::ParseReqLine(const std::string& req_line)
     }
 
     _req._method = matches[1];
-    transform(_req._method.begin(), _req._method.end(), _req._method.begin(), toupper);
+    transform(_req._method.begin(), _req._method.end(), _req._method.begin(), ::toupper);
     // 不需要将 "+ -> 空格"
     _req._uri = Util::UrlDecode(matches[2], false);
     _req._version = matches[4];
@@ -107,7 +109,8 @@ bool HttpContext::RecvHttpHead(Buffer *buf)
         // 遇到换行，则退出
         if (line == "\r\n" || line == "\n")
         {
-            break;
+            _status = RECV_REQ_BODY;
+            return true;
         }
 
         bool ret = ParseHttpHead(line);
@@ -117,8 +120,8 @@ bool HttpContext::RecvHttpHead(Buffer *buf)
             _resp_code = 400;
             return false;
         }
-        _status = RECV_REQ_BODY;
-        return true;
+        // _status = RECV_REQ_BODY;
+        // return true;
     }
     return true;
 }
@@ -135,6 +138,10 @@ bool HttpContext::ParseHttpHead(const std::string& head)
     std::string val = head.substr(pos + 2);
     _req.SetHeaders(key, val);
 
+    // for (auto& e : _req._headers)
+    // {
+    //     std::cout << e.first << ": " << e.second << std::endl;
+    // }
     return true;
 }
 
@@ -145,6 +152,7 @@ bool HttpContext::RecvHttpBody(Buffer* buf)
     int content_length = _req.ContentLength();
     if (content_length == 0)
     {
+        INF_LOG("RECV_REQ_OVER");
         _status = RECV_REQ_OVER;
         return true;
     }

@@ -1,42 +1,46 @@
 #include "HttpServer.h"
 
-void HttpServer::MakeResponse(std::shared_ptr<Connection> con, const HttpRequest &req, HttpResponse &resp)
+void HttpServer::MakeResponse(const std::shared_ptr<Connection>& con, const HttpRequest &req, HttpResponse *resp)
 {
     // 1. 设置头部字段
     // 长 or 短 链接
-    if (resp.IsKeepAlive())
+    if (resp->IsKeepAlive())
     {
-        resp.SetHeaders("Connection", "keep-alive");
+        resp->SetHeaders("Connection", "keep-alive");
     }
     else
     {
-        resp.SetHeaders("Connection", "close");
+        resp->SetHeaders("Connection", "close");
     }
     // 正文长度
-    if (!resp._body.empty() && !resp.HasHeaders("Content-Length"))
+    if (!resp->_body.empty() && !resp->HasHeaders("Content-Length"))
     {
-        resp.SetHeaders("Content-Length", std::to_string(resp._body.size()));
+        resp->SetHeaders("Content-Length", std::to_string(resp->_body.size()));
     }
     // 正文类型
-    if (!resp._body.empty() && !resp.HasHeaders("Content-Type"))
+    if (!resp->_body.empty() && !resp->HasHeaders("Content-Type"))
     {
-        resp.SetHeaders("Content-Type", "application/octet-stream");
+        resp->SetHeaders("Content-Type", "application/octet-stream");
     }
     // 重定向
-    if (resp._redirect_flag)
+    if (resp->_redirect_flag)
     {
-        resp.SetHeaders("Location", resp._redirect_uri);
+        resp->SetHeaders("Location", resp->_redirect_uri);
     }
     // 2. 构建响应
     std::stringstream resp_str;
 
-    resp_str << req._version << " " << resp._code << " " << Util::GetStatusDesc(resp._code) << "\r\n";
+    resp_str << req._version << " " << resp->_code << " " << Util::GetStatusDesc(resp->_code) << "\r\n";
 
-    for (auto &e : resp._headers)
+    for (auto &e : resp->_headers)
     {
         resp_str << e.first << ": " << e.second << "\r\n";
     }
     resp_str << "\r\n";
+
+    resp_str << resp->_body;
+
+    //INF_LOG("%s",resp_str.str().c_str());
 
     // 在conn中发送数据
     con->Send(resp_str.str().c_str(), resp_str.str().size());
@@ -60,13 +64,14 @@ void HttpServer::Dispatcher(HttpRequest &req, HttpResponse *resp, const std::vec
 {
     for (auto &handle : route)
     {
-        const std::regex &pattern = handle.first;
+        std::regex pattern = handle.first;
         bool ret = std::regex_match(req._uri, req._matches, pattern);
         if (ret == false)
             continue;
         if (ret == true)
         {
             handle.second(req, resp);
+            return;
         }
     }
     resp->_code = 404;
@@ -108,7 +113,10 @@ void HttpServer::FileHandler(HttpRequest &req, HttpResponse *resp)
 {
     bool ret = Util::ReadFile(req._uri, &resp->_body);
     if (ret == false)
+    {
+        ERR_LOG("READ FILE ERROR!");
         return;
+    }
     std::string mime = Util::GetMime(req._uri);
     resp->SetHeaders("Content-Type", mime);
 }
@@ -118,6 +126,7 @@ void HttpServer::Route(HttpRequest &req, HttpResponse *resp)
     // 1. 先判断是否是静态资源请求
     if (IsFileHandler(req))
     {
+        INF_LOG("uri: %s, Is File Handler.", req._uri.c_str());
         return FileHandler(req, resp);
     }
     // 2.如果不是静态资源请求，就要看是不是动态的请求
@@ -143,17 +152,22 @@ void HttpServer::Route(HttpRequest &req, HttpResponse *resp)
     }
 }
 
-void HttpServer::OnConnected(std::shared_ptr<Connection> con)
+void HttpServer::OnConnected(const std::shared_ptr<Connection>& con)
 {
-    con->SetContext(HttpRequest());
+    con->SetContext(HttpContext());
 }
 
-void HttpServer::OnMessage(std::shared_ptr<Connection> con, Buffer *buf)
+void HttpServer::OnMessage(const std::shared_ptr<Connection>& con, Buffer *buf)
 {
     while (true)
     {
         // 1. 获取上下文
         HttpContext *context = con->GetContext()->GetValAddr<HttpContext>();
+        if (context == nullptr) 
+        {
+            ERR_LOG("context get error");
+            return ;
+        }
         // 2. 处理buf中的数据放到HttpRequest
         context->RecvHttpRequest(buf);
 
@@ -166,10 +180,10 @@ void HttpServer::OnMessage(std::shared_ptr<Connection> con, Buffer *buf)
         // 2.1 如果处理的时候 RespCode 大于 400，说明发生错误，要给客户端发送错误响应
         if (context->GetRespCode() >= 400)
         {
-            ERR_LOG("Clinet Request Error");
+            ERR_LOG("Client Request Error");
             ErrorHandler(req, &resp);
-            MakeResponse(con, req, resp);
-            con->ShutDown();
+            MakeResponse(con, req, &resp);
+            con->Release();
             return;
         }
 
@@ -184,7 +198,7 @@ void HttpServer::OnMessage(std::shared_ptr<Connection> con, Buffer *buf)
         Route(req, &resp);
 
         // 4. 构造响应
-        MakeResponse(con, req, resp);
+        MakeResponse(con, req, &resp);
 
         // 5. 此次请求处理完毕，清空上下文
         context->Reset();
@@ -210,24 +224,29 @@ void HttpServer::SetWebRoot(const std::string &wwwroot)
     _www_root = wwwroot;
 }
 
+void HttpServer::SetThreadCount(int thread_count)
+{
+    _tcp_server.SetThreadCountAndCreate(thread_count);
+}
+
 void HttpServer::Get(const std::string &pattern, const HttpReqHandle &handle)
 {
-    _get_route.emplace_back(std::regex(pattern), handle);
+    _get_route.emplace_back(std::make_pair(std::regex(pattern), handle));
 }
 
 void HttpServer::Put(const std::string &pattern, const HttpReqHandle &handle)
 {
-    _put_route.emplace_back(std::regex(pattern), handle);
+    _put_route.emplace_back(std::make_pair(std::regex(pattern), handle));
 }
 
 void HttpServer::Post(const std::string &pattern, const HttpReqHandle &handle)
 {
-    _post_route.emplace_back(std::regex(pattern), handle);
+    _post_route.emplace_back(std::make_pair(std::regex(pattern), handle));
 }
 
 void HttpServer::Delete(const std::string &pattern, const HttpReqHandle &handle)
 {
-    _delete_route.emplace_back(std::regex(pattern), handle);
+    _delete_route.emplace_back(std::make_pair(std::regex(pattern), handle));
 }
 
 void HttpServer::Listen()

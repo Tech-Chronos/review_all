@@ -35,7 +35,7 @@ public:
     int GetConnId();
 
     /// @brief 设置上层协议类型
-    void SetContext(const Any& context);
+    void SetContext(Any context);
     Any* GetContext();
 
     /// @brief 组件使用者设置的4个回调函数
