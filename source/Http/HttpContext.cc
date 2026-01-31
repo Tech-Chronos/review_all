@@ -126,8 +126,10 @@ bool HttpContext::RecvHttpHead(Buffer *buf)
     return true;
 }
 
-bool HttpContext::ParseHttpHead(const std::string& head)
+bool HttpContext::ParseHttpHead(std::string& head)
 {
+    if (head.back() == '\n') head.pop_back();
+    if (head.back() == '\r') head.pop_back();
     auto pos = head.find(": ");
     if (pos == std::string::npos)
     {

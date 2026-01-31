@@ -26,7 +26,7 @@ private:
     bool ParseReqLine(const std::string&);
 
     bool RecvHttpHead(Buffer* buf);
-    bool ParseHttpHead(const std::string&);
+    bool ParseHttpHead(std::string&);
 
     bool RecvHttpBody(Buffer* buf);
 public:
