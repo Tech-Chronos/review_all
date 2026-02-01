@@ -120,8 +120,6 @@ bool HttpContext::RecvHttpHead(Buffer *buf)
             _resp_code = 400;
             return false;
         }
-        // _status = RECV_REQ_BODY;
-        // return true;
     }
     return true;
 }
@@ -154,7 +152,7 @@ bool HttpContext::RecvHttpBody(Buffer* buf)
     int content_length = _req.ContentLength();
     if (content_length == 0)
     {
-        INF_LOG("RECV_REQ_OVER");
+        //INF_LOG("RECV_REQ_OVER");
         _status = RECV_REQ_OVER;
         return true;
     }

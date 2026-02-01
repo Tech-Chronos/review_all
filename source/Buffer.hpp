@@ -68,13 +68,14 @@ public:
         // 剩余空间够，前移
         else if (len <= GetFrontSpaceNum() + GetBackSpaceNum())
         {
+            size_t readable = GetReadableDataNum();
             // 首先获取读的起始位置
             std::vector<char>::iterator it_begin = _buffer.begin() + _reader_idx;
             // 将整部分的可读空间copy到开头
             std::copy(it_begin, it_begin + GetReadableDataNum(), _buffer.begin());
             // 更新读写偏移量
             _reader_idx = 0;
-            _writer_idx = GetReadableDataNum();
+            _writer_idx = readable;
             return;
         }
         // 剩余空间不够，扩容
@@ -89,6 +90,7 @@ public:
     void MoveWriteOffset(size_t len)
     {
         if (len == 0) return;
+        //EnsureAmpleSpace(len);
         // 只要保证前沿的空间够，就可以向后移动了，这里肯定可以保证，因为已经ensure了
         assert(len <= GetFrontSpaceNum() && len > 0);
         _writer_idx += len;

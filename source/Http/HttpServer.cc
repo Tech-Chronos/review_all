@@ -81,16 +81,25 @@ bool HttpServer::IsFileHandler(HttpRequest &req)
 {
     // 1. 首先判断方法是否是 head or get
     if (req._method != "GET" && req._method != "HEAD")
+    {
+        INF_LOG("req.method error!");
         return false;
-
+    }
+        
     // 2. 是否设置了网络根目录
     if (_www_root.empty())
+    {
+        INF_LOG("_www_root.empty() error!");
         return false;
-
+    }
+        
     // 3. 判断路径是否是合法的
     if (!Util::IsValidPath(req._uri))
+    {
+        INF_LOG("Util::IsValidPath(req._uri) error");
         return false;
-
+    }
+        
     // 4. 判断请求的是目录还是普通文件，如果是目录，要判断这个目录加上index.html，如果是普通文件，直接判断是否存在
     std::string req_uri = _www_root + req._uri;
     if (req_uri.back() == '/')
@@ -102,9 +111,14 @@ bool HttpServer::IsFileHandler(HttpRequest &req)
     // 如果不是普通文件，或者此文件不存在就返回，执行动态处理函数
     bool ret = Util::IsRegular(req_uri);
     if (!ret)
+    {
+        INF_LOG("Util::IsRegular(req_uri) error");
+        INF_LOG("filename : %s", req_uri.c_str());
         return false;
+    }
     // 如果是普通文件，返回true，并且把我这个文件的uri重新设置一下
     req._uri = req_uri;
+    //INF_LOG("uri:%s",req._uri.c_str());
     return true;
 }
 
@@ -124,9 +138,10 @@ void HttpServer::FileHandler(HttpRequest &req, HttpResponse *resp)
 void HttpServer::Route(HttpRequest &req, HttpResponse *resp)
 {
     // 1. 先判断是否是静态资源请求
+    //INF_LOG("IsFileHandler(req): %d, req.uri = %s", IsFileHandler(req), req._uri.c_str());
     if (IsFileHandler(req))
     {
-        INF_LOG("uri: %s, Is File Handler.", req._uri.c_str());
+        //INF_LOG("uri: %s, Is File Handler.", req._uri.c_str());
         return FileHandler(req, resp);
     }
     // 2.如果不是静态资源请求，就要看是不是动态的请求
@@ -183,13 +198,14 @@ void HttpServer::OnMessage(const std::shared_ptr<Connection>& con, Buffer *buf)
             ERR_LOG("Client Request Error");
             ErrorHandler(req, &resp);
             MakeResponse(con, req, &resp);
-            con->Release();
+            con->ShutDown();
             return;
         }
 
         // 2.2 当上下文没有处理完成的时候，要继续接受，不能立刻构造resp
         if (context->GetStatus() != RECV_REQ_OVER)
         {
+            // ]
             DBG_LOG("Server Need To Go On Receiving ...");
             return;
         }
