@@ -141,12 +141,13 @@ void HttpServer::Route(HttpRequest &req, HttpResponse *resp)
     //INF_LOG("IsFileHandler(req): %d, req.uri = %s", IsFileHandler(req), req._uri.c_str());
     if (IsFileHandler(req))
     {
-        //INF_LOG("uri: %s, Is File Handler.", req._uri.c_str());
+        INF_LOG("uri: %s, Is File Handler.", req._uri.c_str());
         return FileHandler(req, resp);
     }
     // 2.如果不是静态资源请求，就要看是不是动态的请求
     if (req._method == "GET" || req._method == "HEAD")
     {
+        INF_LOG("this is a get or head method");
         Dispatcher(req, resp, _get_route);
     }
     else if (req._method == "POST")
@@ -198,6 +199,10 @@ void HttpServer::OnMessage(const std::shared_ptr<Connection>& con, Buffer *buf)
             ERR_LOG("Client Request Error");
             ErrorHandler(req, &resp);
             MakeResponse(con, req, &resp);
+
+            // 解析失败，要进行清空缓冲区，防止关闭的时候再处理缓冲区中的数据，造成死循环！
+            req.Reset();
+            buf->MoveReadOffset(buf->GetReadableDataNum());
             con->ShutDown();
             return;
         }
@@ -205,8 +210,7 @@ void HttpServer::OnMessage(const std::shared_ptr<Connection>& con, Buffer *buf)
         // 2.2 当上下文没有处理完成的时候，要继续接受，不能立刻构造resp
         if (context->GetStatus() != RECV_REQ_OVER)
         {
-            // ]
-            DBG_LOG("Server Need To Go On Receiving ...");
+            // DBG_LOG("Server Need To Go On Receiving ...");
             return;
         }
 
